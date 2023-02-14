@@ -1,0 +1,45 @@
+### SQL QUERY ###
+
+### SRM Counts
+
+start = '2022-12-01'
+end = '2023-01-31'
+
+%%time
+query = """
+SELECT
+    srm.metadata.originIp AS rsuIP,
+    DATE(
+        EXTRACT(YEAR FROM TIMESTAMP(srm.metadata.odeReceivedAt) AT TIME ZONE "America/Denver"),
+        EXTRACT(MONTH FROM TIMESTAMP(srm.metadata.odeReceivedAt) AT TIME ZONE "America/Denver"),
+        EXTRACT(DAY FROM TIMESTAMP(srm.metadata.odeReceivedAt) AT TIME ZONE "America/Denver")
+    ) AS localDate,
+    count(1) AS SRM_count
+FROM cdot-adap-prod.raw_from_rtdh_standard.cv_srm_standard
+WHERE srm.metadata.originIp LIKE @Region1
+    AND DATETIME(TIMESTAMP(srm.metadata.odeReceivedAt), \"America/Denver\") BETWEEN @start_date AND @end_date
+GROUP BY localDate, rsuIP
+ORDER BY localDate, rsuIP
+"""
+
+query_params = [ 
+    bigquery.ScalarQueryParameter("Region1", "STRING", '%10.11.81%'), #displays SRM counts by using all RSUs from 10.11.81.## located on Wadsworth Blvd
+    bigquery.ScalarQueryParameter("start_date", "STRING", start), 
+    bigquery.ScalarQueryParameter("end_date", "STRING", end), 
+]
+
+job_config = bigquery.QueryJobConfig()
+job_config.query_parameters = query_params
+
+# execute the query
+SRM = client.query(query, job_config=job_config).to_dataframe()
+SRM.head()
+
+
+### SRM Singular Request 
+
+date = '2022-01-03'
+intersectionID = 12113
+
+
+
